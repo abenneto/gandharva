@@ -36,3 +36,14 @@ ignore = ["E741"]  # 单字母变量在 DSP 公式里可读性更好
 
 [tool.ruff.lint.isort]
 known-first-party = ["gandharva"]
+
+[tool.mypy]
+python_version = "3.9"
+files = ["src/gandharva"]
+strict = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+
+[[tool.mypy.overrides]]
+module = ["scipy.*"]
+ignore_missing_imports = true
