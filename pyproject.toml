@@ -7,7 +7,7 @@ name = "gandharva"
 dynamic = ["version"]
 description = "语音与音乐交叉的歌声合成（SVS）与转换（SVC）框架，纯 NumPy/SciPy 实现"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = { file = "LICENSE" }
 authors = [{ name = "Rong Shengxue" }]
 dependencies = [
@@ -38,7 +38,7 @@ packages = ["src/gandharva"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py39"
+target-version = "py310"
 src = ["src", "tests"]
 
 [tool.ruff.lint]
@@ -49,7 +49,7 @@ ignore = ["E741"]  # 单字母变量在 DSP 公式里可读性更好
 known-first-party = ["gandharva"]
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.10"
 files = ["src/gandharva"]
 strict = true
 warn_unused_ignores = true
