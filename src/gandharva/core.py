@@ -8,6 +8,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+import numpy as np
+from numpy.typing import NDArray
+
 from gandharva.exceptions import ScoreError
 
 
@@ -77,3 +80,44 @@ class Score:
 
     def __iter__(self):  # type: ignore[no-untyped-def]
         return iter(self.notes)
+
+
+@dataclass
+class F0Contour:
+    """逐帧基频轨迹。
+
+    ``values`` 中 0 表示清音 / 无声段；``hop_length`` 与 ``sample_rate``
+    共同决定每帧对应的时刻。
+    """
+
+    values: NDArray[np.float64]
+    hop_length: int
+    sample_rate: int
+
+    @property
+    def times(self) -> NDArray[np.float64]:
+        """每帧中心对应的时刻（秒）。"""
+        n = len(self.values)
+        return np.arange(n, dtype=np.float64) * self.hop_length / self.sample_rate
+
+    @property
+    def voiced(self) -> NDArray[np.bool_]:
+        """布尔掩码：该帧是否为浊音（基频 > 0）。"""
+        return self.values > 0.0
+
+    def __len__(self) -> int:
+        return len(self.values)
+
+
+@dataclass
+class Voice:
+    """已渲染的歌声：波形加上采样率，可选携带生成它的基频轨迹。"""
+
+    samples: NDArray[np.float64]
+    sample_rate: int
+    f0: F0Contour | None = None
+
+    @property
+    def duration(self) -> float:
+        """波形时长（秒）。"""
+        return len(self.samples) / self.sample_rate
