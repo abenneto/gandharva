@@ -12,6 +12,29 @@ from gandharva.exceptions import ParameterError
 
 FloatArray = NDArray[np.float64]
 
+_WINDOWS = {
+    "hann": np.hanning,
+    "hamming": np.hamming,
+    "blackman": np.blackman,
+    "bartlett": np.bartlett,
+    "rect": np.ones,
+}
+
+
+def get_window(name: str, length: int) -> FloatArray:
+    """按名称返回长度为 ``length`` 的窗函数。
+
+    支持 ``hann``、``hamming``、``blackman``、``bartlett``、``rect``。
+    """
+    if length <= 0:
+        raise ParameterError("窗长必须为正")
+    try:
+        fn = _WINDOWS[name]
+    except KeyError as exc:
+        raise ParameterError(f"未知窗函数 {name!r}，可选：{sorted(_WINDOWS)}") from exc
+    return fn(length).astype(np.float64)
+
+
 
 def frame_signal(
     signal: FloatArray,
