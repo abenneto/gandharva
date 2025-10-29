@@ -84,3 +84,35 @@ def frame_signal(
         strides=(hop_length * stride, stride),
         writeable=False,
     )
+
+
+def overlap_add(
+    frames: FloatArray,
+    hop_length: int,
+    *,
+    window: FloatArray | None = None,
+) -> FloatArray:
+    """重叠相加：把 ``(n_frames, frame_length)`` 帧序列拼回一维信号。
+
+    若给出 ``window``，则做加权归一化（WOLA），逐样本除以窗能量之和，
+    从而抵消分析窗与合成窗叠加带来的幅度起伏。
+    """
+    if frames.ndim != 2:
+        raise ParameterError("overlap_add 需要二维帧数组")
+    n_frames, frame_length = frames.shape
+    if n_frames == 0:
+        return np.zeros(0, dtype=np.float64)
+
+    out_len = (n_frames - 1) * hop_length + frame_length
+    out = np.zeros(out_len, dtype=np.float64)
+    norm = np.zeros(out_len, dtype=np.float64)
+    win = np.ones(frame_length) if window is None else window
+
+    for i in range(n_frames):
+        start = i * hop_length
+        out[start : start + frame_length] += frames[i] * win
+        norm[start : start + frame_length] += win**2
+
+    nonzero = norm > 1e-12
+    out[nonzero] /= norm[nonzero]
+    return out
