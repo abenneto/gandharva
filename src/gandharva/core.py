@@ -63,7 +63,7 @@ class Score:
         self._check_no_overlap()
 
     def _check_no_overlap(self) -> None:
-        for a, b in zip(self.notes, self.notes[1:]):
+        for a, b in zip(self.notes, self.notes[1:], strict=False):
             # 允许极小的浮点误差
             if b.start + 1e-6 < a.end:
                 raise ScoreError(
