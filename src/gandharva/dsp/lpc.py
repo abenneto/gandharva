@@ -27,3 +27,36 @@ def autocorrelate(frame: FloatArray, order: int) -> FloatArray:
     spec = np.fft.rfft(frame, nfft)
     acf = np.fft.irfft(spec * np.conj(spec), nfft)[: order + 1]
     return acf.astype(np.float64)
+
+
+def levinson_durbin(acf: FloatArray, order: int) -> tuple[FloatArray, float]:
+    """Levinson-Durbin 递推。
+
+    从自相关序列 ``acf`` 解全极点模型的系数，返回 ``(a, err)``：
+
+    - ``a`` 形如 ``[1, a1, ..., ap]``，即 A(z) = 1 + a1 z^-1 + ... 的系数；
+    - ``err`` 为最终的预测残差能量。
+
+    比直接求 Toeplitz 逆更稳定，且天然给出反射系数（此处未返回）。
+    """
+    a = np.zeros(order + 1, dtype=np.float64)
+    a[0] = 1.0
+    err = float(acf[0])
+    if err <= 0.0:
+        # 全零 / 直流帧，返回平凡解
+        return a, max(err, EPS)
+
+    for i in range(1, order + 1):
+        acc = acf[i]
+        for j in range(1, i):
+            acc += a[j] * acf[i - j]
+        k = -acc / err
+        # 就地更新系数（对称回代）
+        a_prev = a[1:i].copy()
+        a[1:i] += k * a_prev[::-1]
+        a[i] = k
+        err *= 1.0 - k * k
+        if err <= 0.0:
+            err = EPS
+            break
+    return a, err
