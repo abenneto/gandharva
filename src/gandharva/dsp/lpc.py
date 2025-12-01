@@ -74,3 +74,15 @@ def lpc(frame: FloatArray, order: int) -> tuple[FloatArray, float]:
     a, err = levinson_durbin(acf, order)
     gain = float(np.sqrt(max(err, EPS)))
     return a, gain
+
+
+def lpc_envelope(a: FloatArray, gain: float, n_fft: int) -> FloatArray:
+    """由 LPC 系数得到幅度谱包络。
+
+    包络 = |gain / A(e^{jw})|，在 ``n_fft // 2 + 1`` 个频点上取值，
+    描摹声道共振（共振峰）位置，用于 SVC 中的音色迁移。
+    """
+    a_full = np.zeros(n_fft, dtype=np.float64)
+    a_full[: len(a)] = a
+    denom = np.fft.rfft(a_full)
+    return np.abs(gain / np.maximum(np.abs(denom), EPS))
