@@ -25,17 +25,15 @@ def cepstral_envelope(magnitude: FloatArray, n_coeffs: int) -> FloatArray:
         保留的低倒谱系数个数（“提升器”截止），越小越平滑。
     """
     log_mag = np.log(np.maximum(magnitude, EPS))
-    # 构造整谱（共轭对称）后做实倒谱
-    full = np.concatenate([log_mag, log_mag[-2:0:-1]])
-    cepstrum = np.fft.irfft(np.fft.rfft(full))
-    # 低通提升：保留前 n_coeffs 与其镜像
+    # 把对数幅度谱（半谱）视作实偶谱，逆变换到倒谱（quefrency）域
+    cepstrum = np.fft.irfft(log_mag)
+    # 低通提升：只保留低 quefrency（含其镜像），抹去精细谐波结构
     lifter = np.zeros_like(cepstrum)
     lifter[:n_coeffs] = 1.0
-    lifter[-n_coeffs + 1 :] = 1.0
+    lifter[-(n_coeffs - 1) :] = 1.0
     lifter[0] = 1.0
-    smoothed_full = np.fft.irfft(np.fft.rfft(cepstrum * lifter))
-    smoothed = smoothed_full[: len(magnitude)]
-    return np.exp(smoothed).astype(np.float64)
+    env_log = np.fft.rfft(cepstrum * lifter).real
+    return np.exp(env_log).astype(np.float64)
 
 
 def _liftered_cepstrum(magnitude: FloatArray, n_coeffs: int) -> FloatArray:
