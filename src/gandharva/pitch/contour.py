@@ -68,3 +68,40 @@ def apply_portamento(contour: F0Contour, transition_ms: float = 80.0) -> F0Conto
     out = values.copy()
     out[voiced] = 2.0 ** log_f[voiced]
     return F0Contour(values=out, hop_length=contour.hop_length, sample_rate=contour.sample_rate)
+
+
+def apply_vibrato(
+    contour: F0Contour,
+    *,
+    rate_hz: float = 5.5,
+    depth_cents: float = 40.0,
+    onset_ms: float = 300.0,
+) -> F0Contour:
+    """在持续浊音段上叠加颤音（vibrato）。
+
+    颤音为一个正弦音高调制，深度以音分计。每个浊音段在 ``onset_ms``
+    毫秒后才逐渐进入满深度，模拟歌手先稳住音高再加颤音的习惯。
+    """
+    values = contour.values.copy()
+    voiced = values > 0
+    times = contour.times
+    depth_ratio = depth_cents / 1200.0  # 转到对数域倍率
+
+    # 逐个连续浊音段处理
+    idx = 0
+    n = len(values)
+    while idx < n:
+        if not voiced[idx]:
+            idx += 1
+            continue
+        seg_start = idx
+        while idx < n and voiced[idx]:
+            idx += 1
+        seg = slice(seg_start, idx)
+        local_t = times[seg] - times[seg_start]
+        # 渐入包络
+        onset = np.clip(local_t / (onset_ms / 1000.0), 0.0, 1.0)
+        mod = depth_ratio * onset * np.sin(2 * np.pi * rate_hz * local_t)
+        values[seg] = values[seg] * (2.0**mod)
+
+    return F0Contour(values=values, hop_length=contour.hop_length, sample_rate=contour.sample_rate)
