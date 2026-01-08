@@ -37,3 +37,34 @@ def notes_to_f0(
         f0[mask] = float(midi_to_hz(note.pitch))
 
     return F0Contour(values=f0, hop_length=hop_length, sample_rate=sample_rate)
+
+
+def apply_portamento(contour: F0Contour, transition_ms: float = 80.0) -> F0Contour:
+    """在浊音音高突变处加入滑音（portamento）。
+
+    在对数频率域，对每个音高台阶的边界用 S 形（余弦）曲线平滑过渡，
+    过渡时长为 ``transition_ms`` 毫秒。清音段（0）保持不变。
+    """
+    values = contour.values.copy()
+    voiced = values > 0
+    log_f = np.zeros_like(values)
+    log_f[voiced] = np.log2(values[voiced])
+
+    trans_frames = max(1, int(transition_ms / 1000.0 * contour.sample_rate / contour.hop_length))
+    # 找到浊音内部的音高跳变位置
+    boundaries = np.where(
+        voiced[:-1] & voiced[1:] & (np.abs(np.diff(log_f)) > 1e-4)
+    )[0]
+
+    for b in boundaries:
+        start = max(0, b - trans_frames // 2)
+        end = min(len(values) - 1, b + trans_frames // 2 + 1)
+        if end <= start or not (voiced[start] and voiced[end]):
+            continue
+        # 余弦渐变从 start 值滑到 end 值
+        ramp = 0.5 * (1 - np.cos(np.linspace(0, np.pi, end - start)))
+        log_f[start:end] = log_f[start] + (log_f[end] - log_f[start]) * ramp
+
+    out = values.copy()
+    out[voiced] = 2.0 ** log_f[voiced]
+    return F0Contour(values=out, hop_length=contour.hop_length, sample_rate=contour.sample_rate)
