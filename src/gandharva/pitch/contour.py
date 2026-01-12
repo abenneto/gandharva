@@ -105,3 +105,40 @@ def apply_vibrato(
         values[seg] = values[seg] * (2.0**mod)
 
     return F0Contour(values=values, hop_length=contour.hop_length, sample_rate=contour.sample_rate)
+
+
+def apply_attack_overshoot(
+    contour: F0Contour,
+    *,
+    overshoot_cents: float = 25.0,
+    attack_ms: float = 60.0,
+) -> F0Contour:
+    """在每个浊音段起始处加入音高过冲（attack overshoot）。
+
+    歌手起音时常先略微冲过目标音高再回落。这里在段首 ``attack_ms``
+    毫秒内叠加一个先扬后落的半周期，峰值为 ``overshoot_cents`` 音分。
+    """
+    values = contour.values.copy()
+    voiced = values > 0
+    times = contour.times
+    peak_ratio = overshoot_cents / 1200.0
+    attack_s = attack_ms / 1000.0
+
+    idx = 0
+    n = len(values)
+    while idx < n:
+        if not voiced[idx]:
+            idx += 1
+            continue
+        seg_start = idx
+        while idx < n and voiced[idx]:
+            idx += 1
+        local_t = times[seg_start:idx] - times[seg_start]
+        env = np.where(
+            local_t < attack_s,
+            np.sin(np.pi * local_t / attack_s),  # 半周期：0→1→0
+            0.0,
+        )
+        values[seg_start:idx] = values[seg_start:idx] * (2.0 ** (peak_ratio * env))
+
+    return F0Contour(values=values, hop_length=contour.hop_length, sample_rate=contour.sample_rate)
