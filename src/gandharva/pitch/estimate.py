@@ -44,7 +44,8 @@ def difference_function(frame: FloatArray, max_lag: int) -> FloatArray:
     energy_head = power[n] - power[taus]
     d = power[n] + energy_head - 2.0 * acf
     d[0] = 0.0
-    return np.maximum(d, 0.0)
+    out: FloatArray = np.maximum(d, 0.0)
+    return out
 
 
 def cumulative_mean_normalized(d: FloatArray) -> FloatArray:
@@ -93,7 +94,7 @@ def parabolic_interpolation(cmndf: FloatArray, tau: int) -> float:
     if abs(denom) < 1e-12:
         return float(tau)
     shift = 0.5 * (a - c) / denom
-    return float(tau) + shift
+    return float(tau) + float(shift)
 
 
 def estimate_f0(
