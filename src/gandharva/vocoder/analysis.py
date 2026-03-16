@@ -60,7 +60,7 @@ def analyze(
     coeffs: list[FloatArray] = []
     gains = np.zeros(len(frames), dtype=np.float64)
     for i, frame in enumerate(frames):
-        a, gain = lpc(frame * win, lpc_order)
+        a, gain = lpc(frame * win, lpc_order, sample_rate=sample_rate)
         coeffs.append(a)
         gains[i] = gain
 
