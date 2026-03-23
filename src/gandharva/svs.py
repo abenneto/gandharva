@@ -22,6 +22,7 @@ from gandharva.constants import (
     DEFAULT_SAMPLE_RATE,
 )
 from gandharva.core import Score
+from gandharva.voice.formants import formant_envelope
 from gandharva.voice.phonemes import vowel_of
 
 FloatArray = NDArray[np.float64]
@@ -57,3 +58,37 @@ def _frame_vowels(score: Score, n_frames: int, hop_length: int, sample_rate: int
             if note.start <= t < note.end:
                 vowels[i] = v
     return vowels
+
+
+def _build_envelopes(
+    vowels: list[str],
+    frame_length: int,
+    sample_rate: int,
+    *,
+    smooth_frames: int = 3,
+) -> FloatArray:
+    """按逐帧元音生成共振峰谱包络矩阵，并在元音切换处做时间平滑。
+
+    形状 ``(n_frames, frame_length // 2 + 1)``。清音 / 空档帧包络记为极小值，
+    避免噪声被整形出可闻能量。
+    """
+    n_frames = len(vowels)
+    n_bins = frame_length // 2 + 1
+    envelopes = np.full((n_frames, n_bins), 1e-3, dtype=np.float64)
+
+    # 缓存每种元音的包络，避免重复计算
+    cache: dict[str, FloatArray] = {}
+    for i, v in enumerate(vowels):
+        if not v:
+            continue
+        if v not in cache:
+            cache[v] = formant_envelope(v, frame_length, sample_rate)
+        envelopes[i] = cache[v]
+
+    # 沿时间轴做滑动平均，弱化相邻元音间的突变
+    if smooth_frames > 1:
+        kernel = np.ones(smooth_frames) / smooth_frames
+        envelopes = np.apply_along_axis(
+            lambda col: np.convolve(col, kernel, mode="same"), axis=0, arr=envelopes
+        )
+    return envelopes
