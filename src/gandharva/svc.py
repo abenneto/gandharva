@@ -35,7 +35,9 @@ class ConvertConfig:
     lpc_order: int = 24
 
 
-def convert_pitch(signal: FloatArray, semitones: float, config: ConvertConfig | None = None) -> Voice:
+def convert_pitch(
+    signal: FloatArray, semitones: float, config: ConvertConfig | None = None
+) -> Voice:
     """把歌声整体升降 ``semitones`` 个半音，保持时长与音色。
 
     做法：分析 → 基频乘以变调系数（激励音高变）→ LPC 包络不动（音色不变）
