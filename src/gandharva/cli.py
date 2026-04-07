@@ -16,7 +16,7 @@ import numpy as np
 from gandharva.audio import read_wav, write_wav
 from gandharva.core import Note, Score
 from gandharva.pitch.estimate import estimate_f0
-from gandharva.svc import convert_pitch
+from gandharva.svc import convert_pitch, convert_to_key
 from gandharva.svs import synthesize_score
 
 
@@ -38,6 +38,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_f0 = sub.add_parser("f0", help="提取基频轨迹")
     p_f0.add_argument("input", help="输入 WAV 路径")
+
+    p_key = sub.add_parser("key", help="把歌声修到指定调式（autotune）")
+    p_key.add_argument("input", help="输入 WAV 路径")
+    p_key.add_argument(
+        "-t", "--tonic", type=int, default=60, help="主音 MIDI 音高（默认 60 = C4）"
+    )
+    p_key.add_argument("-o", "--output", default="tuned.wav", help="输出 WAV 路径")
 
     return parser
 
@@ -84,6 +91,13 @@ def main(argv: list[str] | None = None) -> int:
             )
         else:
             print("未检测到浊音帧")
+        return 0
+
+    if command == "key":
+        signal, sr = read_wav(args.input)
+        voice = convert_to_key(signal, args.tonic)
+        write_wav(args.output, voice.samples, voice.sample_rate)
+        print(f"修音完成：{args.output}（主音 MIDI {args.tonic}）")
         return 0
 
     return 1
