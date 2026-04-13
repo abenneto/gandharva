@@ -75,6 +75,32 @@ class Score:
         """整段乐谱时长（秒）。"""
         return self.notes[-1].end if self.notes else 0.0
 
+    @classmethod
+    def from_dict(cls, data: dict[str, object]) -> Score:
+        """从 ``{"notes": [{start, duration, pitch, lyric?}, ...]}`` 构造乐谱。
+
+        缺少必填字段会抛出 :class:`~gandharva.exceptions.ScoreError`。
+        """
+        raw = data.get("notes")
+        if not isinstance(raw, list):
+            raise ScoreError("乐谱缺少 notes 列表")
+        notes: list[Note] = []
+        for i, item in enumerate(raw):
+            if not isinstance(item, dict):
+                raise ScoreError(f"第 {i} 个音符不是对象")
+            try:
+                notes.append(
+                    Note(
+                        start=float(item["start"]),
+                        duration=float(item["duration"]),
+                        pitch=float(item["pitch"]),
+                        lyric=str(item.get("lyric", "a")),
+                    )
+                )
+            except KeyError as exc:
+                raise ScoreError(f"第 {i} 个音符缺少字段 {exc}") from exc
+        return cls(notes)
+
     def __len__(self) -> int:
         return len(self.notes)
 
