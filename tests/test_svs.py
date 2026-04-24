@@ -11,7 +11,9 @@ from gandharva.svs import SynthConfig, synthesize_score
 def _scale_score() -> Score:
     pitches = [60, 62, 64, 65, 67]
     lyrics = ["la", "le", "li", "lo", "lu"]
-    notes = [Note(i * 0.4, 0.4, p, ly) for i, (p, ly) in enumerate(zip(pitches, lyrics))]
+    notes = [
+        Note(i * 0.4, 0.4, p, ly) for i, (p, ly) in enumerate(zip(pitches, lyrics, strict=True))
+    ]
     return Score(notes)
 
 
