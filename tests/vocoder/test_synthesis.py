@@ -55,3 +55,27 @@ def test_synthesis_output_finite() -> None:
     exc = mixed_excitation(frames.f0, frames.hop_length, sr)
     out = synthesize(frames, exc)
     assert np.all(np.isfinite(out))
+
+
+def test_unvoiced_input_synthesizes_noise() -> None:
+    # 纯噪声输入：应全部判为清音，合成结果仍有限、无爆音
+    sr = 24000
+    rng = np.random.default_rng(3)
+    noise = 0.2 * rng.standard_normal(sr // 2)
+    frames = analyze(noise, sample_rate=sr)
+    voiced_frac = float(np.mean(frames.f0 > 0))
+    assert voiced_frac < 0.3
+    exc = mixed_excitation(frames.f0, frames.hop_length, sr)
+    out = synthesize(frames, exc)
+    assert np.all(np.isfinite(out))
+
+
+def test_lpc_synthesis_is_stable_for_periodic() -> None:
+    # 强周期信号曾让全极点滤波器发散，这里确认已被正则化压住
+    sr = 24000
+    sig = _voiced_signal(120.0, sr)
+    frames = analyze(sig, sample_rate=sr)
+    for a in frames.lpc_coeffs:
+        roots = np.roots(a)
+        if roots.size:
+            assert np.max(np.abs(roots)) < 1.0
