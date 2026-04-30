@@ -45,3 +45,34 @@ def test_resample_changes_length() -> None:
 def test_resample_identity() -> None:
     sig = np.arange(100, dtype=np.float64)
     np.testing.assert_array_equal(resample(sig, 16000, 16000), sig)
+
+
+def test_resample_downsample_halves_length() -> None:
+    sr = 24000
+    sig = np.sin(2 * np.pi * 200 * np.arange(sr) / sr)
+    out = resample(sig, sr, sr // 2)
+    assert abs(len(out) - sr // 2) <= 2
+
+
+def test_resample_preserves_tone_frequency() -> None:
+    # 220 Hz 正弦重采样后谱峰频率不应改变
+    src_sr = 16000
+    dst_sr = 24000
+    freq = 220.0
+    t = np.arange(src_sr) / src_sr
+    sig = np.sin(2 * np.pi * freq * t)
+    out = resample(sig, src_sr, dst_sr)
+    spec = np.abs(np.fft.rfft(out * np.hanning(len(out))))
+    freqs = np.fft.rfftfreq(len(out), 1.0 / dst_sr)
+    peak = freqs[int(np.argmax(spec))]
+    assert abs(peak - freq) < 5.0
+
+
+def test_clip_on_write(tmp_path: Path) -> None:
+    # 超出 [-1,1] 的样本应在写入时被截断，读回不超界
+    sr = 8000
+    loud = np.full(sr // 10, 2.5)
+    path = str(tmp_path / "loud.wav")
+    write_wav(path, loud, sr)
+    back, _ = read_wav(path)
+    assert np.max(np.abs(back)) <= 1.0 + 1e-6
