@@ -40,3 +40,33 @@ def test_carries_f0_contour() -> None:
     voice = synthesize_score(_scale_score())
     assert voice.f0 is not None
     assert voice.f0.voiced.mean() > 0.8
+
+
+def test_samples_length_matches_f0_frames() -> None:
+    voice = synthesize_score(_scale_score())
+    assert voice.f0 is not None
+    hop = SynthConfig().hop_length
+    # 波形长度应约等于帧数 * hop（允许一帧的尾差）
+    expected = len(voice.f0) * hop
+    assert abs(len(voice.samples) - expected) <= SynthConfig().frame_length
+
+
+def test_longer_score_longer_audio() -> None:
+    short = synthesize_score(Score([Note(0.0, 0.5, 60, "la")]))
+    long = synthesize_score(Score([Note(0.0, 2.0, 60, "la")]))
+    assert len(long.samples) > len(short.samples)
+
+
+def test_custom_config_changes_sample_rate() -> None:
+    cfg = SynthConfig(sample_rate=16000)
+    voice = synthesize_score(Score([Note(0.0, 0.5, 60, "la")]), cfg)
+    assert voice.sample_rate == 16000
+
+
+def test_rest_produces_silence_region() -> None:
+    score = Score([Note(0.0, 0.4, 60, "la"), Note(0.8, 0.4, 64, "le")])
+    voice = synthesize_score(score)
+    assert voice.f0 is not None
+    # 0.4~0.8s 的空档应基本清音
+    gap = (voice.f0.times >= 0.45) & (voice.f0.times < 0.75)
+    assert np.mean(voice.f0.voiced[gap]) < 0.2
