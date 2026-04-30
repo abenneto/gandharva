@@ -64,7 +64,9 @@ def cumulative_mean_normalized(d: FloatArray) -> FloatArray:
 def absolute_threshold(cmndf: FloatArray, threshold: float, min_lag: int) -> int:
     """在 CMNDF 上做绝对阈值搜索，返回选中的整数 tau；未找到返回 -1。
 
-    取第一个低于 ``threshold`` 的局部谷；若没有则退回全局最小值。
+    取第一个低于 ``threshold`` 的局部谷。若没有任何点过阈值，只有当全局
+    最小值仍明显偏低（表明存在弱但真实的周期性）时才退回全局最小；否则
+    判为清音——否则白噪声会被误判为浊音。
     """
     tau = min_lag
     n = len(cmndf)
@@ -75,9 +77,13 @@ def absolute_threshold(cmndf: FloatArray, threshold: float, min_lag: int) -> int
                 tau += 1
             return tau
         tau += 1
-    # 无低于阈值者：若整体较好则用全局最小，否则判为清音
-    best = int(np.argmin(cmndf[min_lag:])) + min_lag if n > min_lag else -1
-    return best if best >= min_lag and cmndf[best] < 1.0 else -1
+    # 无低于阈值者：仅在全局最小足够低时才勉强接受为浊音
+    if n <= min_lag:
+        return -1
+    best = int(np.argmin(cmndf[min_lag:])) + min_lag
+    # 清 / 浊判定的宽限：略高于阈值即可，远低于噪声的典型 CMNDF(~0.8-1.0)
+    voiced_ceiling = min(0.3, threshold * 1.5)
+    return best if cmndf[best] < voiced_ceiling else -1
 
 
 def parabolic_interpolation(cmndf: FloatArray, tau: int) -> float:
