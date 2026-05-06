@@ -95,6 +95,11 @@ def lpc(frame: FloatArray, order: int, *, sample_rate: int = 24000) -> tuple[Flo
     """
     if order < 1:
         raise ParameterError("LPC order 必须 >= 1")
+    # 全零 / 近静音帧：自相关全 0，直接返回平凡滤波器，避免除零
+    if float(np.dot(frame, frame)) < EPS:
+        a = np.zeros(order + 1, dtype=np.float64)
+        a[0] = 1.0
+        return a, 0.0
     acf = autocorrelate(frame, order)
     acf = _regularize_acf(acf, sample_rate=sample_rate)
     a, err = levinson_durbin(acf, order)
