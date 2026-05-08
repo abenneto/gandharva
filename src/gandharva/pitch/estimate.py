@@ -123,8 +123,9 @@ def estimate_f0(
 
     f0 = np.zeros(len(frames), dtype=np.float64)
     for i, frame in enumerate(frames):
-        # 能量太低直接判为清音，省去计算
-        if float(np.dot(frame, frame)) < 1e-6:
+        # 用均方根判静音，比原始平方和更稳（不会因大幅值溢出）
+        rms = float(np.sqrt(np.mean(frame.astype(np.float64) ** 2)))
+        if rms < 1e-4:
             continue
         d = difference_function(frame, max_lag)
         cmndf = cumulative_mean_normalized(d)
