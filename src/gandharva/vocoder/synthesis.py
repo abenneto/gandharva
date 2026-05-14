@@ -70,4 +70,18 @@ def synthesize_from_envelopes(
         shaped = spectrum * envelopes[i]
         out_frames[i] = np.fft.irfft(shaped, n=frame_length)
 
-    return overlap_add(out_frames, hop_length, window=win)
+    out = overlap_add(out_frames, hop_length, window=win)
+    return _declick(out, fade=hop_length // 2)
+
+
+def _declick(signal: FloatArray, fade: int) -> FloatArray:
+    """去直流并对首尾做短渐入 / 渐出，压掉起止处的爆音。"""
+    if signal.size == 0:
+        return signal
+    out = signal - float(np.mean(signal))
+    fade = min(fade, len(out) // 2)
+    if fade > 0:
+        ramp = np.linspace(0.0, 1.0, fade)
+        out[:fade] *= ramp
+        out[-fade:] *= ramp[::-1]
+    return out
