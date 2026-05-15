@@ -34,8 +34,3 @@ def cepstral_envelope(magnitude: FloatArray, n_coeffs: int) -> FloatArray:
     lifter[0] = 1.0
     env_log = np.fft.rfft(cepstrum * lifter).real
     return np.exp(env_log).astype(np.float64)
-
-
-def _liftered_cepstrum(magnitude: FloatArray, n_coeffs: int) -> FloatArray:
-    """返回低通提升后的对数域包络（供内部复用）。"""
-    return np.log(np.maximum(cepstral_envelope(magnitude, n_coeffs), EPS))
