@@ -15,6 +15,7 @@ import numpy as np
 
 from gandharva.audio import read_wav, write_wav
 from gandharva.core import Score
+from gandharva.exceptions import ScoreError
 from gandharva.pitch.estimate import estimate_f0
 from gandharva.svc import convert_pitch, convert_to_key
 from gandharva.svs import synthesize_score
@@ -62,7 +63,11 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     if command == "synth":
-        score = _load_score(args.score)
+        try:
+            score = _load_score(args.score)
+        except (OSError, ValueError, ScoreError) as exc:
+            print(f"乐谱加载失败：{exc}")
+            return 2
         voice = synthesize_score(score)
         write_wav(args.output, voice.samples, voice.sample_rate)
         print(f"合成完成：{args.output}（{voice.duration:.2f}s）")
