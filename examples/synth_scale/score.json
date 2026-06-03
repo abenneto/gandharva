@@ -1,0 +1,12 @@
+{
+    "notes": [
+        {"start": 0.0, "duration": 0.5, "pitch": 60, "lyric": "do"},
+        {"start": 0.5, "duration": 0.5, "pitch": 62, "lyric": "re"},
+        {"start": 1.0, "duration": 0.5, "pitch": 64, "lyric": "mi"},
+        {"start": 1.5, "duration": 0.5, "pitch": 65, "lyric": "fa"},
+        {"start": 2.0, "duration": 0.5, "pitch": 67, "lyric": "so"},
+        {"start": 2.5, "duration": 0.5, "pitch": 69, "lyric": "la"},
+        {"start": 3.0, "duration": 0.5, "pitch": 71, "lyric": "ti"},
+        {"start": 3.5, "duration": 1.0, "pitch": 72, "lyric": "do"},
+    ]
+}
