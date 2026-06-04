@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import numpy as np
+import scipy.signal as sps
 from numpy.typing import NDArray
 
 from gandharva.constants import EPS
@@ -46,14 +47,21 @@ def mixed_excitation(
     sample_rate: int,
     *,
     aperiodicity: FloatArray | None = None,
+    glottal_rolloff: float = 0.96,
     seed: int = 0,
 ) -> FloatArray:
     """浊音脉冲串与噪声按非周期性混合的激励。
 
     ``aperiodicity`` 为逐帧 [0, 1]：0 表示纯周期（脉冲），1 表示纯噪声。
     默认清音帧噪声、浊音帧少量气声，符合歌声的自然嗓音质感。
+
+    ``glottal_rolloff`` 给脉冲串加一个一阶泄漏积分（约 −6 dB/oct 的声门源谱
+    倾斜），把过亮、过 buzzy 的平坦脉冲谱压成更接近真实声带的形状，
+    抬高基频附近的能量。设 0 可关闭。
     """
     pulses = pulse_train(f0, hop_length, sample_rate)
+    if glottal_rolloff > 0.0:
+        pulses = sps.lfilter([1.0], [1.0, -glottal_rolloff], pulses)
     total = len(pulses)
     rng = np.random.default_rng(seed)
     noise = rng.standard_normal(total)
