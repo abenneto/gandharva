@@ -97,9 +97,9 @@ def lpc(frame: FloatArray, order: int, *, sample_rate: int = 24000) -> tuple[Flo
         raise ParameterError("LPC order 必须 >= 1")
     # 全零 / 近静音帧：自相关全 0，直接返回平凡滤波器，避免除零
     if float(np.dot(frame, frame)) < EPS:
-        a = np.zeros(order + 1, dtype=np.float64)
-        a[0] = 1.0
-        return a, 0.0
+        trivial: FloatArray = np.zeros(order + 1, dtype=np.float64)
+        trivial[0] = 1.0
+        return trivial, 0.0
     acf = autocorrelate(frame, order)
     acf = _regularize_acf(acf, sample_rate=sample_rate)
     a, err = levinson_durbin(acf, order)
@@ -116,4 +116,5 @@ def lpc_envelope(a: FloatArray, gain: float, n_fft: int) -> FloatArray:
     a_full = np.zeros(n_fft, dtype=np.float64)
     a_full[: len(a)] = a
     denom = np.fft.rfft(a_full)
-    return np.abs(gain / np.maximum(np.abs(denom), EPS))
+    env: FloatArray = np.abs(gain / np.maximum(np.abs(denom), EPS))
+    return env

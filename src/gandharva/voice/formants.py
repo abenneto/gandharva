@@ -57,4 +57,5 @@ def formant_envelope(
 
     # 加一个轻微的谱倾斜（-6 dB/oct 附近），更接近真实声源
     tilt = 1.0 / (1.0 + (freqs / 200.0))
-    return (envelope * tilt + 1e-3).astype(np.float64)
+    out: FloatArray = (envelope * tilt + 1e-3).astype(np.float64)
+    return out

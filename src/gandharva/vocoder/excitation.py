@@ -77,4 +77,5 @@ def mixed_excitation(
     noise_gain = np.sqrt(np.clip(ap_samples, 0.0, 1.0))
     mixed = voiced_gain * pulses + noise_gain * noise * 0.3
     peak = float(np.max(np.abs(mixed)))
-    return (mixed / (peak + EPS)).astype(np.float64)
+    out: FloatArray = (mixed / (peak + EPS)).astype(np.float64)
+    return out

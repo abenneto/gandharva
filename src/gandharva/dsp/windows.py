@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from functools import lru_cache
+from typing import Any, cast
 
 import numpy as np
 from numpy.typing import NDArray
@@ -15,7 +16,7 @@ from gandharva.exceptions import ParameterError
 
 FloatArray = NDArray[np.float64]
 
-_WINDOWS: dict[str, Callable[[int], FloatArray]] = {
+_WINDOWS: dict[str, Callable[..., Any]] = {
     "hann": np.hanning,
     "hamming": np.hamming,
     "blackman": np.blackman,
@@ -42,7 +43,7 @@ def get_window(name: str, length: int) -> FloatArray:
 
 @lru_cache(maxsize=32)
 def _cached_window(name: str, length: int) -> FloatArray:
-    return _WINDOWS[name](length).astype(np.float64)
+    return cast(FloatArray, _WINDOWS[name](length).astype(np.float64))
 
 
 def frame_signal(
