@@ -38,3 +38,38 @@ def pulse_train(f0: FloatArray, hop_length: int, sample_rate: int) -> FloatArray
             phase -= 1.0
             excitation[n] = 1.0
     return excitation
+
+
+def mixed_excitation(
+    f0: FloatArray,
+    hop_length: int,
+    sample_rate: int,
+    *,
+    aperiodicity: FloatArray | None = None,
+    seed: int = 0,
+) -> FloatArray:
+    """浊音脉冲串与噪声按非周期性混合的激励。
+
+    ``aperiodicity`` 为逐帧 [0, 1]：0 表示纯周期（脉冲），1 表示纯噪声。
+    默认清音帧噪声、浊音帧少量气声，符合歌声的自然嗓音质感。
+    """
+    pulses = pulse_train(f0, hop_length, sample_rate)
+    total = len(pulses)
+    rng = np.random.default_rng(seed)
+    noise = rng.standard_normal(total)
+
+    n_frames = len(f0)
+    if aperiodicity is None:
+        # 浊音默认 0.1 气声，清音全噪声
+        ap = np.where(f0 > 0.0, 0.1, 1.0)
+    else:
+        ap = aperiodicity
+    frame_idx = np.clip(np.arange(total) // hop_length, 0, n_frames - 1)
+    ap_samples = ap[frame_idx]
+
+    # 能量守恒式混合：sqrt 权重
+    voiced_gain = np.sqrt(np.clip(1.0 - ap_samples, 0.0, 1.0))
+    noise_gain = np.sqrt(np.clip(ap_samples, 0.0, 1.0))
+    mixed = voiced_gain * pulses + noise_gain * noise * 0.3
+    peak = float(np.max(np.abs(mixed)))
+    return (mixed / (peak + EPS)).astype(np.float64)
