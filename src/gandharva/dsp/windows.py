@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from functools import lru_cache
 
 import numpy as np
 from numpy.typing import NDArray
@@ -27,14 +28,21 @@ def get_window(name: str, length: int) -> FloatArray:
     """按名称返回长度为 ``length`` 的窗函数。
 
     支持 ``hann``、``hamming``、``blackman``、``bartlett``、``rect``。
+    结果按 (name, length) 缓存并返回只读视图，避免热路径反复重算。
     """
     if length <= 0:
         raise ParameterError("窗长必须为正")
-    try:
-        fn = _WINDOWS[name]
-    except KeyError as exc:
-        raise ParameterError(f"未知窗函数 {name!r}，可选：{sorted(_WINDOWS)}") from exc
-    return fn(length).astype(np.float64)
+    if name not in _WINDOWS:
+        raise ParameterError(f"未知窗函数 {name!r}，可选：{sorted(_WINDOWS)}")
+    win = _cached_window(name, length)
+    view = win.view()
+    view.flags.writeable = False
+    return view
+
+
+@lru_cache(maxsize=32)
+def _cached_window(name: str, length: int) -> FloatArray:
+    return _WINDOWS[name](length).astype(np.float64)
 
 
 def frame_signal(
