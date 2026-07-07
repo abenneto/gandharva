@@ -1,0 +1,26 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "gandharva"
+dynamic = ["version"]
+description = "语音与音乐交叉的歌声合成（SVS）与转换（SVC）框架，纯 NumPy/SciPy 实现"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+authors = [{ name = "Rong Shengxue" }]
+dependencies = [
+    "numpy>=1.23",
+    "scipy>=1.9",
+]
+
+[project.urls]
+Homepage = "https://github.com/abenneto/gandharva"
+Issues = "https://github.com/abenneto/gandharva/issues"
+
+[tool.hatch.version]
+path = "src/gandharva/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/gandharva"]
