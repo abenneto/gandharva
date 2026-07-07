@@ -39,3 +39,28 @@ def test_cents_of_semitone() -> None:
 
 def test_transpose_up_octave() -> None:
     assert np.isclose(transpose_hz(220.0, 12), 440.0)
+
+
+def test_cents_are_antisymmetric() -> None:
+    a, b = 200.0, 300.0
+    assert np.isclose(cents_between(a, b), -cents_between(b, a))
+
+
+def test_cents_of_octave_is_1200() -> None:
+    assert np.isclose(cents_between(220.0, 440.0), 1200.0)
+
+
+def test_cents_handle_unvoiced() -> None:
+    # 0 Hz（清音）不应产生 nan / inf
+    result = cents_between(0.0, 440.0)
+    assert np.isfinite(result)
+
+
+def test_transpose_negative() -> None:
+    assert np.isclose(transpose_hz(440.0, -12), 220.0)
+
+
+def test_transpose_array() -> None:
+    freqs = np.array([220.0, 440.0])
+    out = transpose_hz(freqs, 12)
+    np.testing.assert_allclose(out, [440.0, 880.0])
