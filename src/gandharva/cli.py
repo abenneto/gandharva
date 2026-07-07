@@ -41,9 +41,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_key = sub.add_parser("key", help="把歌声修到指定调式（autotune）")
     p_key.add_argument("input", help="输入 WAV 路径")
-    p_key.add_argument(
-        "-t", "--tonic", type=int, default=60, help="主音 MIDI 音高（默认 60 = C4）"
-    )
+    p_key.add_argument("-t", "--tonic", type=int, default=60, help="主音 MIDI 音高（默认 60 = C4）")
     p_key.add_argument("-o", "--output", default="tuned.wav", help="输出 WAV 路径")
 
     return parser
