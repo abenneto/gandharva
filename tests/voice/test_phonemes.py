@@ -44,3 +44,25 @@ def test_vowel_of_picks_last_vowel() -> None:
 
 def test_empty_syllable() -> None:
     assert split_syllable("   ") == []
+
+
+def test_uppercase_normalized() -> None:
+    phs = split_syllable("LA")
+    assert phs[0].symbol == "l"
+    assert phs[1].symbol == "a"
+
+
+def test_all_vowels_recognized() -> None:
+    for v in "aeiou":
+        assert vowel_of(v) == v
+
+
+def test_diphthong_takes_last_vowel() -> None:
+    # "hai" 里最后一个元音是 i
+    assert vowel_of("hai") == "i"
+
+
+def test_consonant_lead_duration_sums_to_one() -> None:
+    phs = split_syllable("tra")
+    total = sum(p.duration for p in phs)
+    assert abs(total - 1.0) < 1e-9
