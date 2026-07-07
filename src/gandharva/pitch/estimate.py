@@ -67,3 +67,20 @@ def absolute_threshold(cmndf: FloatArray, threshold: float, min_lag: int) -> int
     # 无低于阈值者：若整体较好则用全局最小，否则判为清音
     best = int(np.argmin(cmndf[min_lag:])) + min_lag if n > min_lag else -1
     return best if best >= min_lag and cmndf[best] < 1.0 else -1
+
+
+def parabolic_interpolation(cmndf: FloatArray, tau: int) -> float:
+    """对选中的整数 tau 做抛物线插值，得到亚采样精度的周期。
+
+    用 tau 及其左右邻点拟合抛物线，返回顶点横坐标（浮点 lag）。
+    """
+    if tau <= 0 or tau >= len(cmndf) - 1:
+        return float(tau)
+    a = cmndf[tau - 1]
+    b = cmndf[tau]
+    c = cmndf[tau + 1]
+    denom = a + c - 2.0 * b
+    if abs(denom) < 1e-12:
+        return float(tau)
+    shift = 0.5 * (a - c) / denom
+    return float(tau) + shift
