@@ -49,3 +49,11 @@ def test_convert_command(tmp_path: Path) -> None:
 
 def test_no_command_prints_help() -> None:
     assert main([]) == 1
+
+
+def test_bad_score_returns_error_code(tmp_path: Path) -> None:
+    bad = tmp_path / "bad.json"
+    bad.write_text('{"notes": [{"start": 0.0, "pitch": 60}]}', encoding="utf-8")
+    out = tmp_path / "out.wav"
+    assert main(["synth", str(bad), "-o", str(out)]) == 2
+    assert not out.exists()
