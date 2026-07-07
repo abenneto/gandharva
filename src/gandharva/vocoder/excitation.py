@@ -59,11 +59,8 @@ def mixed_excitation(
     noise = rng.standard_normal(total)
 
     n_frames = len(f0)
-    if aperiodicity is None:
-        # 浊音默认 0.1 气声，清音全噪声
-        ap = np.where(f0 > 0.0, 0.1, 1.0)
-    else:
-        ap = aperiodicity
+    # 浊音默认 0.1 气声，清音全噪声
+    ap = np.where(f0 > 0.0, 0.1, 1.0) if aperiodicity is None else aperiodicity
     frame_idx = np.clip(np.arange(total) // hop_length, 0, n_frames - 1)
     ap_samples = ap[frame_idx]
 
