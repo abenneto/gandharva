@@ -62,15 +62,41 @@ def levinson_durbin(acf: FloatArray, order: int) -> tuple[FloatArray, float]:
     return a, err
 
 
-def lpc(frame: FloatArray, order: int) -> tuple[FloatArray, float]:
+def _regularize_acf(
+    acf: FloatArray,
+    *,
+    white_noise_floor: float = 1e-4,
+    lag_bandwidth: float = 80.0,
+    sample_rate: int = 24000,
+) -> FloatArray:
+    """对自相关序列做正则化，保证 Levinson-Durbin 解出稳定的全极点滤波器。
+
+    对强周期信号，裸自相关近奇异、预测残差趋近 0，会使反射系数发散、
+    极点跑到单位圆外。两道常规手段：
+
+    1. **白噪声地板**：``r[0] *= (1 + wnf)``，抬高对角、拉开条件数；
+    2. **滞后窗（lag window）**：对 ``r[k]`` 乘高斯窗，等效给谱包络加带宽，
+       抹平过尖的共振。
+    """
+    reg = acf.copy()
+    k = np.arange(len(reg))
+    lag_window = np.exp(-0.5 * ((2 * np.pi * lag_bandwidth * k / sample_rate) ** 2))
+    reg *= lag_window
+    reg[0] *= 1.0 + white_noise_floor
+    return reg
+
+
+def lpc(frame: FloatArray, order: int, *, sample_rate: int = 24000) -> tuple[FloatArray, float]:
     """对单帧信号做 ``order`` 阶 LPC 分析。
 
     返回 ``(a, gain)``：``a`` 是全极点滤波器分母系数（首项为 1），
     ``gain`` 是激励增益 sqrt(err)，使合成幅度与原帧匹配。
+    自相关经正则化，保证滤波器稳定（极点在单位圆内）。
     """
     if order < 1:
         raise ParameterError("LPC order 必须 >= 1")
     acf = autocorrelate(frame, order)
+    acf = _regularize_acf(acf, sample_rate=sample_rate)
     a, err = levinson_durbin(acf, order)
     gain = float(np.sqrt(max(err, EPS)))
     return a, gain
