@@ -44,6 +44,7 @@ def test_rest_is_unvoiced() -> None:
 def test_portamento_smooths_jump() -> None:
     contour = notes_to_f0(_three_note_score())
     smooth = apply_portamento(contour, transition_ms=100.0)
+
     # 平滑后相邻帧的最大对数跳变应变小
     def max_log_jump(c: np.ndarray) -> float:
         v = c[c > 0]
