@@ -35,7 +35,6 @@ def get_window(name: str, length: int) -> FloatArray:
     return fn(length).astype(np.float64)
 
 
-
 def frame_signal(
     signal: FloatArray,
     frame_length: int,
