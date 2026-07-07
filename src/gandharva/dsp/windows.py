@@ -1,0 +1,63 @@
+"""分帧、加窗与重叠相加（OLA）重建。
+
+分帧使用 numpy 的 stride trick，零拷贝地得到重叠窗口视图。
+"""
+
+from __future__ import annotations
+
+import numpy as np
+from numpy.typing import NDArray
+
+from gandharva.exceptions import ParameterError
+
+FloatArray = NDArray[np.float64]
+
+
+def frame_signal(
+    signal: FloatArray,
+    frame_length: int,
+    hop_length: int,
+    *,
+    pad: bool = True,
+) -> FloatArray:
+    """把一维信号切成形状为 ``(n_frames, frame_length)`` 的二维数组。
+
+    参数
+    ----
+    signal:
+        一维波形。
+    frame_length:
+        每帧长度（采样点），必须为正。
+    hop_length:
+        相邻帧的间隔（采样点），必须为正。
+    pad:
+        为 True 时在末尾补零，使最后一帧完整；为 False 时丢弃不足一帧的尾部。
+    """
+    if frame_length <= 0 or hop_length <= 0:
+        raise ParameterError("frame_length 与 hop_length 必须为正")
+    if signal.ndim != 1:
+        raise ParameterError("frame_signal 只接受一维信号")
+
+    signal = np.ascontiguousarray(signal, dtype=np.float64)
+    if pad:
+        remainder = (len(signal) - frame_length) % hop_length
+        if len(signal) < frame_length:
+            pad_len = frame_length - len(signal)
+        elif remainder != 0:
+            pad_len = hop_length - remainder
+        else:
+            pad_len = 0
+        if pad_len:
+            signal = np.concatenate([signal, np.zeros(pad_len, dtype=np.float64)])
+
+    if len(signal) < frame_length:
+        return np.empty((0, frame_length), dtype=np.float64)
+
+    n_frames = 1 + (len(signal) - frame_length) // hop_length
+    stride = signal.strides[0]
+    return np.lib.stride_tricks.as_strided(
+        signal,
+        shape=(n_frames, frame_length),
+        strides=(hop_length * stride, stride),
+        writeable=False,
+    )
