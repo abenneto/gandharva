@@ -60,3 +60,17 @@ def levinson_durbin(acf: FloatArray, order: int) -> tuple[FloatArray, float]:
             err = EPS
             break
     return a, err
+
+
+def lpc(frame: FloatArray, order: int) -> tuple[FloatArray, float]:
+    """对单帧信号做 ``order`` 阶 LPC 分析。
+
+    返回 ``(a, gain)``：``a`` 是全极点滤波器分母系数（首项为 1），
+    ``gain`` 是激励增益 sqrt(err)，使合成幅度与原帧匹配。
+    """
+    if order < 1:
+        raise ParameterError("LPC order 必须 >= 1")
+    acf = autocorrelate(frame, order)
+    a, err = levinson_durbin(acf, order)
+    gain = float(np.sqrt(max(err, EPS)))
+    return a, gain
