@@ -30,3 +30,20 @@ def stft(
     win = get_window(window, frame_length)
     frames = frame_signal(signal, frame_length, hop_length, pad=True)
     return np.fft.rfft(frames * win, axis=1)
+
+
+def istft(
+    spectrum: ComplexArray,
+    frame_length: int,
+    hop_length: int,
+    *,
+    window: str = "hann",
+) -> FloatArray:
+    """逆 STFT。
+
+    对每帧做 :func:`numpy.fft.irfft`，再用加窗重叠相加拼回时域信号。
+    与 :func:`stft` 使用同一分析窗，OLA 内部做能量归一化。
+    """
+    win = get_window(window, frame_length)
+    frames = np.fft.irfft(spectrum, n=frame_length, axis=1)
+    return overlap_add(frames, hop_length, window=win)
