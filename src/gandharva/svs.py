@@ -13,12 +13,18 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+import numpy as np
+from numpy.typing import NDArray
+
 from gandharva.constants import (
     DEFAULT_FRAME_LENGTH,
     DEFAULT_HOP_LENGTH,
     DEFAULT_SAMPLE_RATE,
 )
 from gandharva.core import Score
+from gandharva.voice.phonemes import vowel_of
+
+FloatArray = NDArray[np.float64]
 
 
 @dataclass
@@ -37,3 +43,17 @@ class SynthConfig:
 def synthesize_score(score: Score, config: SynthConfig | None = None) -> None:
     """把乐谱合成为歌声波形（后续提交补全实现）。"""
     raise NotImplementedError
+
+
+def _frame_vowels(score: Score, n_frames: int, hop_length: int, sample_rate: int) -> list[str]:
+    """给每一帧分配它所属音符的元音（休止符 / 空档记为空串）。"""
+    frame_times = np.arange(n_frames) * hop_length / sample_rate
+    vowels = [""] * n_frames
+    for note in score:
+        if note.is_rest:
+            continue
+        v = vowel_of(note.lyric)
+        for i, t in enumerate(frame_times):
+            if note.start <= t < note.end:
+                vowels[i] = v
+    return vowels
