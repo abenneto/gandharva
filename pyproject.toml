@@ -49,7 +49,7 @@ ignore = ["E741"]  # 单字母变量在 DSP 公式里可读性更好
 known-first-party = ["gandharva"]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.12"
 files = ["src/gandharva"]
 strict = true
 warn_unused_ignores = true
