@@ -9,6 +9,16 @@ from __future__ import annotations
 import numpy as np
 from numpy.typing import NDArray
 
+from gandharva.constants import (
+    DEFAULT_FRAME_LENGTH,
+    DEFAULT_HOP_LENGTH,
+    DEFAULT_SAMPLE_RATE,
+    F0_CEIL_HZ,
+    F0_FLOOR_HZ,
+)
+from gandharva.core import F0Contour
+from gandharva.dsp.windows import frame_signal
+
 FloatArray = NDArray[np.float64]
 
 
@@ -84,3 +94,38 @@ def parabolic_interpolation(cmndf: FloatArray, tau: int) -> float:
         return float(tau)
     shift = 0.5 * (a - c) / denom
     return float(tau) + shift
+
+
+def estimate_f0(
+    signal: FloatArray,
+    *,
+    sample_rate: int = DEFAULT_SAMPLE_RATE,
+    frame_length: int = DEFAULT_FRAME_LENGTH,
+    hop_length: int = DEFAULT_HOP_LENGTH,
+    fmin: float = F0_FLOOR_HZ,
+    fmax: float = F0_CEIL_HZ,
+    threshold: float = 0.15,
+) -> F0Contour:
+    """对整段信号逐帧运行 YIN，返回 :class:`~gandharva.core.F0Contour`。
+
+    清音帧（未过阈值或能量过低）的基频记为 0。
+    """
+    min_lag = max(2, int(sample_rate / fmax))
+    max_lag = min(frame_length - 1, int(sample_rate / fmin) + 1)
+    frames = frame_signal(signal, frame_length, hop_length, pad=True)
+
+    f0 = np.zeros(len(frames), dtype=np.float64)
+    for i, frame in enumerate(frames):
+        # 能量太低直接判为清音，省去计算
+        if float(np.dot(frame, frame)) < 1e-6:
+            continue
+        d = difference_function(frame, max_lag)
+        cmndf = cumulative_mean_normalized(d)
+        tau = absolute_threshold(cmndf, threshold, min_lag)
+        if tau < 0:
+            continue
+        period = parabolic_interpolation(cmndf, tau)
+        if period > 0:
+            f0[i] = sample_rate / period
+
+    return F0Contour(values=f0, hop_length=hop_length, sample_rate=sample_rate)
