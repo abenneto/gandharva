@@ -39,8 +39,12 @@ def read_wav(path: str) -> tuple[FloatArray, int]:
 
 
 def write_wav(path: str, samples: FloatArray, sample_rate: int) -> None:
-    """将 [-1, 1] 的 float 波形写为 16-bit PCM 单声道 WAV。"""
-    clipped = np.clip(samples, -1.0, 1.0)
+    """将 [-1, 1] 的 float 波形写为 16-bit PCM 单声道 WAV。
+
+    非有限值（NaN / inf）会先被置零，再做限幅，避免写出损坏的 PCM。
+    """
+    finite = np.nan_to_num(samples, nan=0.0, posinf=1.0, neginf=-1.0)
+    clipped = np.clip(finite, -1.0, 1.0)
     pcm = np.round(clipped * _INT16_MAX).astype("<i2")
     with wave.open(path, "wb") as wf:
         wf.setnchannels(1)
