@@ -78,3 +78,29 @@ def analyze(
         sample_rate=sample_rate,
         frame_length=frame_length,
     )
+
+
+def estimate_aperiodicity(
+    signal: FloatArray,
+    f0: FloatArray,
+    *,
+    sample_rate: int = DEFAULT_SAMPLE_RATE,
+    frame_length: int = DEFAULT_FRAME_LENGTH,
+    hop_length: int = DEFAULT_HOP_LENGTH,
+) -> FloatArray:
+    """逐帧估计非周期性 [0, 1]。
+
+    以过零率作为清 / 浊与气声程度的廉价代理：过零率越高，
+    非周期成分越多。清音帧（f0<=0）直接记为 1。
+    """
+    frames = frame_signal(signal, frame_length, hop_length, pad=True)
+    n = len(frames)
+    ap = np.ones(n, dtype=np.float64)
+
+    for i, frame in enumerate(frames):
+        if i < len(f0) and f0[i] > 0.0:
+            # 归一化过零率
+            zc = np.mean(np.abs(np.diff(np.sign(frame)))) / 2.0
+            # 浊音的气声程度大致落在 [0.05, 0.5]
+            ap[i] = float(np.clip(zc * 1.5, 0.05, 0.6))
+    return ap
