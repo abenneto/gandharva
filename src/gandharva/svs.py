@@ -31,7 +31,7 @@ from gandharva.pitch.contour import (
 from gandharva.vocoder.excitation import mixed_excitation
 from gandharva.vocoder.synthesis import synthesize_from_envelopes
 from gandharva.voice.formants import formant_envelope
-from gandharva.voice.phonemes import vowel_of
+from gandharva.voice.timing import frame_vowels
 
 FloatArray = NDArray[np.float64]
 
@@ -68,7 +68,7 @@ def synthesize_score(score: Score, config: SynthConfig | None = None) -> Voice:
     n_frames = len(contour)
 
     # 2. 逐帧元音 → 共振峰谱包络
-    vowels = _frame_vowels(score, n_frames, cfg.hop_length, cfg.sample_rate)
+    vowels = frame_vowels(score, n_frames, cfg.hop_length, cfg.sample_rate)
     envelopes = _build_envelopes(vowels, cfg.frame_length, cfg.sample_rate)
 
     # 3. 基频驱动激励
@@ -81,20 +81,6 @@ def synthesize_score(score: Score, config: SynthConfig | None = None) -> Voice:
         samples = samples * (0.95 / peak)
 
     return Voice(samples=samples, sample_rate=cfg.sample_rate, f0=contour)
-
-
-def _frame_vowels(score: Score, n_frames: int, hop_length: int, sample_rate: int) -> list[str]:
-    """给每一帧分配它所属音符的元音（休止符 / 空档记为空串）。"""
-    frame_times = np.arange(n_frames) * hop_length / sample_rate
-    vowels = [""] * n_frames
-    for note in score:
-        if note.is_rest:
-            continue
-        v = vowel_of(note.lyric)
-        for i, t in enumerate(frame_times):
-            if note.start <= t < note.end:
-                vowels[i] = v
-    return vowels
 
 
 def _build_envelopes(
