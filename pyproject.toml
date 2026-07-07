@@ -24,3 +24,15 @@ path = "src/gandharva/_version.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/gandharva"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "NPY"]
+ignore = ["E741"]  # 单字母变量在 DSP 公式里可读性更好
+
+[tool.ruff.lint.isort]
+known-first-party = ["gandharva"]
