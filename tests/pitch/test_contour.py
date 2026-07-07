@@ -67,3 +67,38 @@ def test_attack_overshoot_peaks_above_target() -> None:
     over = apply_attack_overshoot(contour, overshoot_cents=40.0, attack_ms=80.0)
     # 段首应短暂高于目标音高
     assert np.max(over.values[:10]) > target
+
+
+def test_single_note_contour_golden_hz() -> None:
+    # A4 (MIDI 69) 应精确渲染成 440 Hz 的稳定台阶
+    contour = notes_to_f0(Score([Note(0.0, 0.5, 69, "a")]))
+    voiced = contour.values[contour.voiced]
+    assert np.allclose(voiced, 440.0, atol=1e-6)
+
+
+def test_portamento_is_monotonic_between_notes() -> None:
+    # 上行两音之间，滑音段的对数音高应单调不减
+    score = Score([Note(0.0, 0.5, 60, "a"), Note(0.5, 0.5, 67, "a")])
+    contour = notes_to_f0(score)
+    smooth = apply_portamento(contour, transition_ms=120.0)
+    # 取过渡窗附近
+    idx = np.searchsorted(smooth.times, 0.5)
+    window = smooth.values[idx - 6 : idx + 6]
+    window = window[window > 0]
+    diffs = np.diff(np.log2(window))
+    assert np.all(diffs >= -1e-6)
+
+
+def test_vibrato_rate_matches_setting() -> None:
+    # 颤音周期数应与 rate * duration 大致相符
+    dur = 2.0
+    rate = 6.0
+    contour = notes_to_f0(Score([Note(0.0, dur, 62, "a")]))
+    vib = apply_vibrato(contour, rate_hz=rate, depth_cents=60.0, onset_ms=50.0)
+    # 用去趋势后的过零数估计周期数
+    v = vib.values[vib.voiced]
+    centered = v - np.mean(v)
+    zero_crossings = np.sum(np.abs(np.diff(np.sign(centered)))) / 2
+    # 每个周期两次过零，允许 ±30% 误差
+    expected = rate * dur
+    assert 0.7 * expected < zero_crossings / 2 < 1.3 * expected
