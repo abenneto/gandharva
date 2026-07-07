@@ -17,6 +17,7 @@ from gandharva.constants import (
     DEFAULT_HOP_LENGTH,
     DEFAULT_SAMPLE_RATE,
 )
+from gandharva.convert_units import hz_to_midi, midi_to_hz
 from gandharva.core import F0Contour, Voice
 from gandharva.vocoder.analysis import analyze, estimate_aperiodicity
 from gandharva.vocoder.excitation import mixed_excitation
@@ -123,4 +124,64 @@ def convert_voice(
     excitation = mixed_excitation(shifted_f0, cfg.hop_length, cfg.sample_rate, aperiodicity=ap)
     samples = synthesize(frames, excitation)
     contour = F0Contour(shifted_f0, cfg.hop_length, cfg.sample_rate)
+    return Voice(samples=samples, sample_rate=cfg.sample_rate, f0=contour)
+
+
+# 大调音阶的半音偏移（相对主音）
+_MAJOR_SCALE = (0, 2, 4, 5, 7, 9, 11)
+
+
+def snap_to_key(
+    f0: FloatArray, tonic_midi: int, scale: tuple[int, ...] = _MAJOR_SCALE
+) -> FloatArray:
+    """把逐帧基频吸附到指定调式的最近音级（自动修音 / autotune）。
+
+    对每个浊音帧，把其 MIDI 音高映射到 ``tonic`` 所定调式里最近的音级。
+    清音帧保持为 0。
+    """
+    out = np.zeros_like(f0)
+    voiced = f0 > 0
+    if not np.any(voiced):
+        return out
+
+    midi = hz_to_midi(f0[voiced])
+    # 相对主音的音级（对八度取模）
+    rel = midi - tonic_midi
+    octave = np.floor(rel / 12.0)
+    degree = rel - octave * 12.0
+    scale_arr = np.asarray(scale, dtype=np.float64)
+    # 找每个音对最近的音级
+    nearest = scale_arr[np.argmin(np.abs(degree[:, None] - scale_arr[None, :]), axis=1)]
+    snapped_midi = tonic_midi + octave * 12.0 + nearest
+    out[voiced] = midi_to_hz(snapped_midi)
+    return out
+
+
+def convert_to_key(
+    signal: FloatArray,
+    tonic_midi: int,
+    *,
+    scale: tuple[int, ...] = _MAJOR_SCALE,
+    config: ConvertConfig | None = None,
+) -> Voice:
+    """把歌声修到指定调式上（保持音色），返回修音后的歌声。"""
+    cfg = config or ConvertConfig()
+    frames = analyze(
+        signal,
+        sample_rate=cfg.sample_rate,
+        frame_length=cfg.frame_length,
+        hop_length=cfg.hop_length,
+        lpc_order=cfg.lpc_order,
+    )
+    snapped = snap_to_key(frames.f0, tonic_midi, scale)
+    ap = estimate_aperiodicity(
+        signal,
+        frames.f0,
+        sample_rate=cfg.sample_rate,
+        frame_length=cfg.frame_length,
+        hop_length=cfg.hop_length,
+    )
+    excitation = mixed_excitation(snapped, cfg.hop_length, cfg.sample_rate, aperiodicity=ap)
+    samples = synthesize(frames, excitation)
+    contour = F0Contour(snapped, cfg.hop_length, cfg.sample_rate)
     return Voice(samples=samples, sample_rate=cfg.sample_rate, f0=contour)
