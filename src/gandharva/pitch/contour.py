@@ -52,13 +52,12 @@ def apply_portamento(contour: F0Contour, transition_ms: float = 80.0) -> F0Conto
 
     trans_frames = max(1, int(transition_ms / 1000.0 * contour.sample_rate / contour.hop_length))
     # 找到浊音内部的音高跳变位置
-    boundaries = np.where(
-        voiced[:-1] & voiced[1:] & (np.abs(np.diff(log_f)) > 1e-4)
-    )[0]
+    boundaries = np.where(voiced[:-1] & voiced[1:] & (np.abs(np.diff(log_f)) > 1e-4))[0]
 
     for b in boundaries:
-        start = max(0, b - trans_frames // 2)
-        end = min(len(values) - 1, b + trans_frames // 2 + 1)
+        center = int(b)
+        start = max(0, center - trans_frames // 2)
+        end = min(len(values) - 1, center + trans_frames // 2 + 1)
         if end <= start or not (voiced[start] and voiced[end]):
             continue
         # 余弦渐变从 start 值滑到 end 值

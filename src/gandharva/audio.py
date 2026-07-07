@@ -66,4 +66,5 @@ def resample(samples: FloatArray, orig_sr: int, target_sr: int) -> FloatArray:
     g = np.gcd(orig_sr, target_sr)
     up = target_sr // g
     down = orig_sr // g
-    return sps.resample_poly(samples, up, down).astype(np.float64)
+    out: FloatArray = sps.resample_poly(samples, up, down).astype(np.float64)
+    return out

@@ -63,4 +63,5 @@ def cents_between(f_from: float | FloatArray, f_to: float | FloatArray) -> float
 def transpose_hz(hz: float | FloatArray, semitones: float) -> float | FloatArray:
     """将频率整体升降 ``semitones`` 个半音（可为小数、可为负）。"""
     factor = 2.0 ** (semitones / SEMITONES_PER_OCTAVE)
-    return np.asarray(hz, dtype=np.float64) * factor
+    out: FloatArray = np.asarray(hz, dtype=np.float64) * factor
+    return out

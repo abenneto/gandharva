@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import numpy as np
 from numpy.typing import NDArray
 
@@ -12,7 +14,7 @@ from gandharva.exceptions import ParameterError
 
 FloatArray = NDArray[np.float64]
 
-_WINDOWS = {
+_WINDOWS: dict[str, Callable[[int], FloatArray]] = {
     "hann": np.hanning,
     "hamming": np.hamming,
     "blackman": np.blackman,
