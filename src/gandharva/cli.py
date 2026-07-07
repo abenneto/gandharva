@@ -14,7 +14,7 @@ import json
 import numpy as np
 
 from gandharva.audio import read_wav, write_wav
-from gandharva.core import Note, Score
+from gandharva.core import Score
 from gandharva.pitch.estimate import estimate_f0
 from gandharva.svc import convert_pitch, convert_to_key
 from gandharva.svs import synthesize_score
@@ -50,10 +50,7 @@ def build_parser() -> argparse.ArgumentParser:
 def _load_score(path: str) -> Score:
     with open(path, encoding="utf-8") as f:
         data = json.load(f)
-    notes = [
-        Note(n["start"], n["duration"], n["pitch"], n.get("lyric", "a")) for n in data["notes"]
-    ]
-    return Score(notes)
+    return Score.from_dict(data)
 
 
 def main(argv: list[str] | None = None) -> int:
