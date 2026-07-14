@@ -12,7 +12,7 @@ license = { file = "LICENSE" }
 authors = [{ name = "Rong Shengxue" }]
 dependencies = [
     "numpy>=1.23",
-    "scipy>=1.9",
+    "scipy>=1.15.3",
 ]
 
 [project.optional-dependencies]
